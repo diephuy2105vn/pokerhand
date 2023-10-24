@@ -63,10 +63,12 @@ def train_model():
         print("Độ chính xác Tree", rate_Clf)
         print("Chỉ số F1 KNN", f1_score_KNN)
         if(rateMax < rate_Clf):
-            rateMax = accuracy_score(Y_test, Y_pred_Clf)
+            rateMax = rate_Clf
             modalResults = clf
         print("Chỉ số F1 Bayes",  f1_score_Bayes)
         print("Chỉ số F1 Tree",  f1_score_Clf)
+    
+    print("Độ chính xác tổng thể", round(rateAvg/10 *100, 4) )
     return modalResults, rateMax
 
 @app.route("/")
