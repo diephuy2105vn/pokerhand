@@ -5,11 +5,10 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 from sklearn.metrics import f1_score
-from imblearn.over_sampling import SMOTE
-
+from sklearn.metrics import classification_report
 app = Flask(__name__)
 
 def sort_pairs_in_row(row):
@@ -26,8 +25,8 @@ def sort_data(data):
     return sorted_data
 
 def train_model(): 
-    data = pd.read_csv("./data/poker-hand-training-true.data", delimiter=",", header=None)
-    print(len(data))
+    data = pd.read_csv("./data/poker-hand-testing.data", delimiter=",", header=None).iloc[0:100000, :]
+    print("Số dòng tập dữ liệu: ",len(data))
     
     kf = KFold(n_splits=10)
     X= sort_data(data.iloc[:,0:10])
@@ -40,33 +39,43 @@ def train_model():
         print("Train:", train_index, "Test:", test_index)
         X_train, X_test = X[train_index], X[test_index]
         Y_train, Y_test = Y[train_index], Y[test_index]
-        
-        knn = KNeighborsClassifier(n_neighbors=5)
-        knn.fit(X_train, Y_train)
-        bayes = MultinomialNB()
+        array_neighbor = [3, 5, 7, 9, 11, 13, 15]
+        f1_score_KNNMax = 0
+        n_neighborMax = 0
+        for n_neighbor in array_neighbor:
+            knn = KNeighborsClassifier(n_neighbors=n_neighbor)
+            knn.fit(X_train, Y_train)
+            Y_pred_KNN = knn.predict(X_test)
+            f1_score_KNN = round(f1_score(Y_test, Y_pred_KNN, average='macro', zero_division=1),4)
+            if(f1_score_KNNMax < f1_score_KNN):
+                f1_score_KNNMax = f1_score_KNN
+                n_neighborMax = n_neighbor
+        print("Chỉ số F1 KNN =", f1_score_KNNMax, " ở n neighbor =", n_neighborMax)
+        bayes = GaussianNB()
         bayes.fit(X_train, Y_train)
-        clf = DecisionTreeClassifier(criterion='gini', random_state=42, class_weight={0: 49.89, 1: 57.75, 2: 95.25, 3: 97.89, 4: 99.61, 5: 99.81, 6: 99.86, 7: 99.97, 8: 99.998, 9: 99.99})
+        clf = DecisionTreeClassifier(criterion='gini',max_depth=52, random_state=42)
         clf.fit(X_train, Y_train)
-        Y_pred_KNN = knn.predict(X_test)
+        
+        
         Y_pred_Bayes = bayes.predict(X_test)
         Y_pred_Clf = clf.predict(X_test)
-        f1_score_Bayes = round(f1_score(Y_test, Y_pred_Bayes, average='macro'),4)
-        f1_score_KNN = round(f1_score(Y_test, Y_pred_KNN, average='macro'),4)
-        f1_score_Clf = round(f1_score(Y_test, Y_pred_Clf, average='macro'),4)
+        f1_score_Bayes = round(f1_score(Y_test, Y_pred_Bayes, average='macro', zero_division=1),4)
+        
+        f1_score_Clf = round(f1_score(Y_test, Y_pred_Clf, average='macro', zero_division=1),4)
         f1Avg += f1_score_Clf
-        print("Chỉ số F1 KNN", f1_score_KNN)
-        print("Chỉ số F1 Bayes",  f1_score_Bayes)
-        print("Chỉ số F1 Tree",  f1_score_Clf)
+        
+        print("Chỉ số F1 Bayes =",  f1_score_Bayes)
+        print("Chỉ số F1 Tree =",  f1_score_Clf," độ sâu của cây", clf.tree_.max_depth)
+        
         if(f1Max < f1_score_Clf):
             modalResults = clf
-        # print(classification_report(Y_test, Y_pred_Clf)), 
-    print("Chỉ số F1 trung bình", round(f1Avg/10 *100, 4) )
-    print("Độ chính xác tổng thể", round(rateAvg/10 *100, 4) )
+        
+    print("Chỉ số F1 trung bình =", round(f1Avg/10 *100, 4) )
     return modalResults
 
 @app.route("/")
 def main():
-    return render_template('index.html', accuracy= round(accuracy,4)*100)
+    return render_template('index.html')
 
 @app.route('/forecast/', methods=['POST'])
 def get_post_data(): 
@@ -88,5 +97,5 @@ def get_post_data():
     return jsonify(message)
 
 if __name__ == "__main__":
-    clf, accuracy = train_model()
+    clf= train_model()
     app.run()
