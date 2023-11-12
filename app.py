@@ -25,7 +25,7 @@ def sort_data(data):
     return sorted_data
 
 def train_model(): 
-    data = pd.read_csv("./data/poker-hand-testing.data", delimiter=",", header=None).iloc[0:100000, :]
+    data = pd.read_csv("./data/poker-hand-training-true.data", delimiter=",", header=None)
     print("Số dòng tập dữ liệu: ",len(data))
     
     kf = KFold(n_splits=10)
@@ -40,33 +40,30 @@ def train_model():
         X_train, X_test = X[train_index], X[test_index]
         Y_train, Y_test = Y[train_index], Y[test_index]
         array_neighbor = [3, 5, 7, 9, 11, 13, 15]
-        f1_score_KNNMax = 0
+        #Tìm n_neighbor có f1 lớn nhất
         n_neighborMax = 0
+        f1_score_KNNMax = 0
         for n_neighbor in array_neighbor:
             knn = KNeighborsClassifier(n_neighbors=n_neighbor)
             knn.fit(X_train, Y_train)
             Y_pred_KNN = knn.predict(X_test)
             f1_score_KNN = round(f1_score(Y_test, Y_pred_KNN, average='macro', zero_division=1),4)
+            
             if(f1_score_KNNMax < f1_score_KNN):
                 f1_score_KNNMax = f1_score_KNN
                 n_neighborMax = n_neighbor
         print("Chỉ số F1 KNN =", f1_score_KNNMax, " ở n neighbor =", n_neighborMax)
         bayes = GaussianNB()
         bayes.fit(X_train, Y_train)
-        clf = DecisionTreeClassifier(criterion='gini',max_depth=52, random_state=42)
+        clf = DecisionTreeClassifier(criterion='gini', random_state=42)
         clf.fit(X_train, Y_train)
-        
-        
         Y_pred_Bayes = bayes.predict(X_test)
         Y_pred_Clf = clf.predict(X_test)
         f1_score_Bayes = round(f1_score(Y_test, Y_pred_Bayes, average='macro', zero_division=1),4)
-        
         f1_score_Clf = round(f1_score(Y_test, Y_pred_Clf, average='macro', zero_division=1),4)
         f1Avg += f1_score_Clf
-        
         print("Chỉ số F1 Bayes =",  f1_score_Bayes)
         print("Chỉ số F1 Tree =",  f1_score_Clf," độ sâu của cây", clf.tree_.max_depth)
-        
         if(f1Max < f1_score_Clf):
             modalResults = clf
         
@@ -81,6 +78,7 @@ def main():
 def get_post_data(): 
     data = request.get_json()
     data_test = sort_data([data])
+    print(data_test)
     pred = clf.predict(data_test).tolist()
     message = ""
     match pred[0]: 
@@ -96,6 +94,6 @@ def get_post_data():
         case 9: message = "Bài của bạn là thùng phá sảnh rồng, ALL IN"
     return jsonify(message)
 
-if __name__ == "__main__":
-    clf= train_model()
-    app.run()
+
+clf= train_model()
+app.run()
