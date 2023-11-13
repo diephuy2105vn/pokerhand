@@ -62,11 +62,11 @@ def train_model():
         f1_score_Bayes = round(f1_score(Y_test, Y_pred_Bayes, average='macro', zero_division=1),4)
         f1_score_Clf = round(f1_score(Y_test, Y_pred_Clf, average='macro', zero_division=1),4)
         f1Avg += f1_score_Clf
+        print(classification_report(Y_test,Y_pred_Clf,   zero_division=1))
         print("Chỉ số F1 Bayes =",  f1_score_Bayes)
         print("Chỉ số F1 Tree =",  f1_score_Clf," độ sâu của cây", clf.tree_.max_depth)
         if(f1Max < f1_score_Clf):
             modalResults = clf
-        
     print("Chỉ số F1 trung bình =", round(f1Avg/10 *100, 4) )
     return modalResults
 
